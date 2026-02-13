@@ -461,6 +461,15 @@ if cors_raw:
         allow_credentials=False,
         max_age=86400,
     )
+else:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_methods=["*"],
+        allow_headers=["*"],
+        allow_credentials=False,
+        max_age=86400,
+    )
 ws_manager = WSManager()
 
 
@@ -630,11 +639,10 @@ async def deletion_purge_loop() -> None:
 
 @app.get("/")
 async def root() -> HTMLResponse:
-    path = os.path.join(APP_DIR, "index.html")
-    if os.path.exists(path):
-        with open(path, "r", encoding="utf-8") as f:
-            return HTMLResponse(content=f.read())
-    raise HTTPException(status_code=404, detail="index.html not found")
+    return HTMLResponse(
+        content='OK. Backend is running. Frontend: <a href="https://sdchat.in">sdchat.in</a> · Health: <a href="/api/health">/api/health</a>',
+        status_code=200,
+    )
 
 
 @app.get("/manifest.webmanifest")
