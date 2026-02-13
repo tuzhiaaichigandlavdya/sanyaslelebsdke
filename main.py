@@ -1199,11 +1199,21 @@ async def put_public_keys(user: sqlite3.Row = Depends(get_current_user), payload
     if not ecdh or not ecdsa:
         raise HTTPException(status_code=400, detail="Missing keys")
     con = db_connect()
-    row = con.execute("SELECT key_version FROM users WHERE id = ?", (str(user["id"]),)).fetchone()
+    row = con.execute(
+        "SELECT key_version, ecdh_p256_spki_b64, ecdsa_p256_spki_b64 FROM users WHERE id = ?",
+        (str(user["id"]),),
+    ).fetchone()
     if row is None:
         con.close()
         raise HTTPException(status_code=404, detail="User not found")
-    next_ver = int(row["key_version"]) + 1
+    cur_ver = int(row["key_version"])
+    cur_ecdh = row["ecdh_p256_spki_b64"]
+    cur_ecdsa = row["ecdsa_p256_spki_b64"]
+    if cur_ecdh == ecdh and cur_ecdsa == ecdsa and cur_ver > 0:
+        con.close()
+        return {"ok": True, "key_version": cur_ver}
+
+    next_ver = cur_ver + 1
     con.execute(
         "UPDATE users SET ecdh_p256_spki_b64=?, ecdsa_p256_spki_b64=?, key_version=?, updated_at=? WHERE id=?",
         (ecdh, ecdsa, next_ver, now_ts(), str(user["id"])),
